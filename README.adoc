@@ -35,13 +35,13 @@ Learn how to create environment-specific configurations for microservices by usi
 // =================================================================================================
 == What you'll learn
 
-In the domain of software delivery, managing configurations for microservices can become complex, especially when configurations require adjustments across various stages of the software lifecycle. MicroProfile Config's configuration profile feature, also known as the https://download.eclipse.org/microprofile/microprofile-config-3.0/microprofile-config-spec-3.0.html#configprofile[Config Profile^], is a direct solution to this challenge. It simplifies the management of microservice configurations across diverse environments - from development to production and throughout the CI/CD pipeline. By tailoring configuration properties to each environment, the deployment process becomes more seamless, allowing developers to concentrate on perfecting their application's delivery.
+In the domain of software delivery, managing configurations for microservices can become complex and challenging, especially when configurations require adjustments across various stages of the software lifecycle. MicroProfile Config's configuration profile feature, also known as the https://download.eclipse.org/microprofile/microprofile-config-3.0/microprofile-config-spec-3.0.html#configprofile[Config Profile^], is a direct solution to this challenge. It simplifies the management of microservice configurations across diverse environments - from development to production and throughout the CI/CD (Continuous Integration/Continuous Delivery) pipeline. By externalizing and tailoring configuration properties to each environment, the CI/CD process becomes more seamless, allowing developers to concentrate on perfecting their application's code and capabilities.
 
-You'll learn how to provide environment-specific configurations by using the MicroProfile Config's configuration profile feature. You'll create configuration profiles at both the individual property level and the higher-level configuration sources.
+You'll learn how to provide environment-specific configurations by using the MicroProfile Config's configuration profile feature. You'll create configuration profiles using individual configuration properties and default configuration source working working with MicroProfile Config API.
 
 This guide builds on the basics of the https://openliberty.io/guides/microprofile-config-intro.html[Separating configuration from code in microservices^] guide and the https://openliberty.io/guides/microprofile-config.html[Configuring microservices^] guide. If you are not familiar with externalizing the configuration of microservices, it will be helpful to read the https://openliberty.io/docs/latest/external-configuration.html[External configuration of microservices^] document and complete those guides before proceeding.
 
-The application that you will work with is a `query` service, which fetches information about the running JVM from a `system` microservice. Given the variances in accessing parameters between development, testing, and production environments, you'll use the configuration profile feature to provide optimal configurations for these interactions.
+The application that you will work with is a `query` service, which fetches information about the running JVM from a `system` microservice. Given the differences in setup between development, testing, and production environments, you'll use the MicroProfile Config configuration profiles to provide externalize and manage the configurations across the different environments.
 
 image::system-query-devops.png[System and query services DevOps,align="center",width=85%,height=85%]
 
@@ -57,7 +57,7 @@ include::{common-includes}/gitclone.adoc[]
 // =================================================================================================
 == Creating a configuration profile for the dev environment
 
-The dev environment is a foundational stage where developers experiment, debug, and refine their code, ensuring an application's reliability before progressing to subsequent stages.
+The dev environment is used in the development stage by developers to test, experiment, debug, and refine their code, ensuring an application's functional readiness before progressing to subsequent stages in a software development and delivery lifecycle.
 
 Navigate to the `start` directory to begin.
 
@@ -77,11 +77,9 @@ query/pom.xml
 include::finish/query/pom.xml[]
 ----
 
-In software processes, there are different setups for tasks such as development, testing, and going live. Making development the starting setup is a practical approach. It helps smooth out the workflow by ensuring immediate access to development-specific resources without requiring additional setup.
-
 The `system` microservice contains the three build profiles: [hotspot=development file=0]`dev`, [hotspot=testing file=0]`test`, and [hotspot=prod file=0]`prod`, in which the [hotspot=defaultProfile file=0]`dev` profile is set as the default.
 
-MicroProfile Config's configuration profile feature allows for the supply of configurations for different environments while only a single profile is active. The active profile is set using the `mp.config.profile` property, which acts as a unique identifier for each configuration profile and can be set in any of the https://openliberty.io/docs/latest/external-configuration.html#default[configuration sources^] or during the application startup. When a profile is active, its associated configuration properties are used. For the `query` service, the `mp.config.profile` property is set to [hotspot=mp.config.profile file=1]`dev` in its Maven `pom.xml` as the default configuration profile.
+MicroProfile Config's configuration profile feature allows for the supply of configurations for different environments while only a single profile is active. The active profile is set using the `mp.config.profile` property. It can be set in any of the https://openliberty.io/docs/latest/external-configuration.html#default[configuration sources^] and is read once during application startup. When a profile is active, its associated configuration properties are used. For the `query` service, the `mp.config.profile` property is set to [hotspot=mp.config.profile file=1]`dev` in its Maven `pom.xml` as a Liberty configuration variable indicating to the runtime that `dev` is the active configuration profile.
 
 When you run Open Liberty in https://openliberty.io/docs/latest/development-mode.html[dev mode^], the dev mode listens for file changes and automatically recompiles and deploys your updates whenever you save a new change.
 
@@ -118,15 +116,15 @@ microprofile-config.properties
 include::start/query/src/main/resources/META-INF/microprofile-config.properties[]
 ----
 
-In the dev environment, the [hotspot=development file=0]`dev` configuration profile in the [hotspot file=0]`system/pom.xml` file is used for running the `system` service. The `system` service runs on http port [hotspot=httpport file=0]`9081` and https port [hotspot=httpsport file=0]`9444` using the context root [hotspot=context.root file=0]`system/dev`. It uses a basic user registry with username [hotspot=username file=0]`alice` and password [hotspot=password file=0]`alicepwd` for resource authorization. Note that the `basicRegistry` element is a simple case for learning purposes. For more information on user registries, see the https://openliberty.io/docs/latest/user-registries-application-security.html[User registries documentation^].
+In the dev environment, the [hotspot=development file=0]`dev` configuration profile is set in the [hotspot file=0]`system/pom.xml` file as the configuration profile to use for running the `system` service. The `system` service runs on HTTP port [hotspot=httpport file=0]`9081` and HTTPS port [hotspot=httpsport file=0]`9444` using the context root [hotspot=context.root file=0]`system/dev`. It uses a basic user registry with username [hotspot=username file=0]`alice` and password [hotspot=password file=0]`alicepwd` for resource authorization. Note that the `basicRegistry` element is a simple case for learning purposes. For more information on user registries, see the https://openliberty.io/docs/latest/user-registries-application-security.html[User registries documentation^].
 
 Point your browser to the http://localhost:9085/query/systems/localhost URL. The `query` service returns the message: `{"fail":"Failed to reach the client localhost."}`. This is because the current `query` service uses the default properties in the [hotspot file=2]`query/src/main/resources/META-INF/microprofile-config.properties` file to access the `system` service.
 
-For proper communication with the development `system` service, the `query` service should set up a `dev` configuration profile.
+For proper communication with the development `system` service, the `query` service should use the properties in the `dev` configuration profile.
 
 image::system-query-devops-development.png[System service running in development environment,align="center",width=85%,height=85%]
 
-There are two ways to approach this. The first is at the property level: creating configuration profiles for individual properties is useful when only a few number of settings need to be set differently for each CI/CD stage, such as database connection settings for different environments. Alternatively, it can be particularly useful to create configuration profiles in higher-level configuration sources when you need to manage a large number of configuration properties across different environments, such as varying ports and context roots. 
+There are two ways to define configuration properties associated with your configuration profile. The first is as individual configuration properties associated with a configuration profile that can be specified in any kind of MicroProfile configuration source. The second is through default `microprofile-config.properties` configuration files embedded inside your application that can be associated with different configuration profiles. The former allows for flexibility in defining profile-specific configuration properties in the best configuration sources for your needs while the latter enables default profiles of configuration properties to be provided in your application.
 
 // =================================================================================================
 // Configuring properties at the property level
@@ -158,7 +156,6 @@ include::finish/system/pom.xml[]
 Configure the [hotspot=development file=0]`%dev.*` properties in the `microprofile-config.properties` file based on the values from the [hotspot=developmentProperties file=1]`dev` profile of the `system` service.
 
 Because the active profile is set to `dev`, each `%dev.*` property will override the value of its original property. For example, the [hotspot=dev.port file=0]`%dev.system.httpsPort` property will override the [hotspot=port file=0]`system.httpsPort` property and the value will be resolved to `9444` in this case.
-
 
 Because you are running the `query` service in dev mode, the changes that you made were automatically picked up. Try out the application at the http://localhost:9085/query/systems/localhost URL. You can see the current OS and Java version in JSON format.
 
